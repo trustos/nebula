@@ -285,12 +285,7 @@ func (f *Interface) run() {
 func (f *Interface) listenOut(i int) {
 	runtime.LockOSThread()
 
-	var li udp.Conn
-	if i > 0 {
-		li = f.writers[i]
-	} else {
-		li = f.outside
-	}
+	li := f.writers[i]
 
 	ctCache := firewall.NewConntrackCacheTicker(f.conntrackCacheTimeout)
 	lhh := f.lightHouse.NewRequestHandler()
