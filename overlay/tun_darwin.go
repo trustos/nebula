@@ -508,13 +508,10 @@ func delRoute(prefix netip.Prefix, gateway netroute.Addr) error {
 }
 
 func (t *tun) Read(to []byte) (int, error) {
-	buf := t.in
-	if cap(buf) < len(to)+4 {
-		buf = make([]byte, len(to)+4)
-		t.in = buf
-	}
-	buf = buf[:len(to)+4]
+	buf := make([]byte, len(to)+4)
+
 	n, err := t.ReadWriteCloser.Read(buf)
+
 	copy(to, buf[4:])
 	return n - 4, err
 }
