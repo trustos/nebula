@@ -167,7 +167,12 @@ func (f *Interface) readOutsidePackets(via ViaSender, out []byte, packet []byte,
 			// This testRequest might be from TryPromoteBest, so we should roam
 			// to the new IP address before responding
 			f.handleHostRoaming(hostinfo, via)
-			f.send(header.Test, header.TestReply, ci, hostinfo, d, nb, out)
+			// Copy d before sending — d is a sub-slice of out, and send()
+			// encrypts into out, causing a buffer overlap panic in Go 1.25+
+			// FIPS-compliant AES-GCM.
+			replyData := make([]byte, len(d))
+			copy(replyData, d)
+			f.send(header.Test, header.TestReply, ci, hostinfo, replyData, nb, out)
 		}
 
 		if h.Subtype == header.TestReply && f.onTestReply != nil {
