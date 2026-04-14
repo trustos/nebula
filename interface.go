@@ -70,6 +70,7 @@ type Interface struct {
 	dropMulticast         bool
 	routines              int
 	tunRoutines           int
+	onTestReply           func(peer netip.Addr, payloadLen int)
 	disconnectInvalid     atomic.Bool
 	closed                atomic.Bool
 	relayManager          *relayManager

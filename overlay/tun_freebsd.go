@@ -450,6 +450,10 @@ func (t *tun) Name() string {
 	return t.Device
 }
 
+func (t *tun) SetMTU(mtu int) error {
+	return fmt.Errorf("SetMTU not supported on FreeBSD")
+}
+
 func (t *tun) SupportsMultiqueue() bool {
 	return false
 }

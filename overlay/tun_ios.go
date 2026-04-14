@@ -151,6 +151,10 @@ func (t *tun) Name() string {
 	return "iOS"
 }
 
+func (t *tun) SetMTU(mtu int) error {
+	return fmt.Errorf("SetMTU not supported on iOS")
+}
+
 func (t *tun) SupportsMultiqueue() bool {
 	return false
 }

@@ -234,6 +234,16 @@ func (t *tun) reload(c *config.C, initial bool) error {
 	return nil
 }
 
+func (t *tun) SetMTU(mtu int) error {
+	ifm := ifreqMTU{Name: t.deviceBytes(), MTU: int32(mtu)}
+	if err := ioctl(t.ioctlFd, unix.SIOCSIFMTU, uintptr(unsafe.Pointer(&ifm))); err != nil {
+		return fmt.Errorf("failed to set tun mtu to %d: %v", mtu, err)
+	}
+	t.MaxMTU = mtu
+	t.DefaultMTU = mtu
+	return nil
+}
+
 func (t *tun) SupportsMultiqueue() bool {
 	return true
 }

@@ -558,6 +558,21 @@ func (t *tun) Name() string {
 	return t.Device
 }
 
+func (t *tun) SetMTU(mtu int) error {
+	s, err := unix.Socket(unix.AF_INET, unix.SOCK_DGRAM, unix.IPPROTO_IP)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(s)
+
+	ifm := ifreqMTU{Name: t.deviceBytes(), MTU: int32(mtu)}
+	if err := ioctl(uintptr(s), unix.SIOCSIFMTU, uintptr(unsafe.Pointer(&ifm))); err != nil {
+		return fmt.Errorf("failed to set tun mtu to %d: %v", mtu, err)
+	}
+	t.DefaultMTU = mtu
+	return nil
+}
+
 func (t *tun) SupportsMultiqueue() bool {
 	return false
 }

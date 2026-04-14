@@ -46,6 +46,10 @@ func (d *UserDevice) RoutesFor(ip netip.Addr) routing.Gateways {
 	return routing.Gateways{routing.NewGateway(ip, 1)}
 }
 
+func (d *UserDevice) SetMTU(mtu int) error {
+	return nil
+}
+
 func (d *UserDevice) SupportsMultiqueue() bool {
 	return true
 }

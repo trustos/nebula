@@ -274,6 +274,16 @@ func (c *Control) Device() overlay.Device {
 	return c.f.inside
 }
 
+func (c *Control) SendTestRequest(vpnAddr netip.Addr, payload []byte) {
+	nb := make([]byte, 12)
+	out := make([]byte, mtu)
+	c.f.SendMessageToVpnAddr(header.Test, header.TestRequest, vpnAddr, payload, nb, out)
+}
+
+func (c *Control) SetOnTestReply(fn func(peer netip.Addr, payloadLen int)) {
+	c.f.onTestReply = fn
+}
+
 func copyHostInfo(h *HostInfo, preferredRanges []netip.Prefix) ControlHostInfo {
 	chi := ControlHostInfo{
 		VpnAddrs:               make([]netip.Addr, len(h.vpnAddrs)),

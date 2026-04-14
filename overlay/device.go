@@ -13,6 +13,7 @@ type Device interface {
 	Networks() []netip.Prefix
 	Name() string
 	RoutesFor(netip.Addr) routing.Gateways
+	SetMTU(mtu int) error
 	SupportsMultiqueue() bool
 	NewMultiQueueReader() (io.ReadWriteCloser, error)
 }

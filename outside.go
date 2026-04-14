@@ -170,6 +170,12 @@ func (f *Interface) readOutsidePackets(via ViaSender, out []byte, packet []byte,
 			f.send(header.Test, header.TestReply, ci, hostinfo, d, nb, out)
 		}
 
+		if h.Subtype == header.TestReply && f.onTestReply != nil {
+			if len(hostinfo.vpnAddrs) > 0 {
+				f.onTestReply(hostinfo.vpnAddrs[0], len(d))
+			}
+		}
+
 		// Fallthrough to the bottom to record incoming traffic
 
 		// Non encrypted messages below here, they should not fall through to avoid tracking incoming traffic since they

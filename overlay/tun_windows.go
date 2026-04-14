@@ -237,6 +237,10 @@ func (t *winTun) Write(b []byte) (int, error) {
 	return t.tun.Write(b, 0)
 }
 
+func (t *winTun) SetMTU(mtu int) error {
+	return fmt.Errorf("SetMTU not supported on Windows")
+}
+
 func (t *winTun) SupportsMultiqueue() bool {
 	return false
 }

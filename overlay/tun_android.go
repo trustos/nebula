@@ -95,6 +95,10 @@ func (t *tun) Name() string {
 	return "android"
 }
 
+func (t *tun) SetMTU(mtu int) error {
+	return fmt.Errorf("SetMTU not supported on Android")
+}
+
 func (t *tun) SupportsMultiqueue() bool {
 	return false
 }

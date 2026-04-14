@@ -105,6 +105,10 @@ func (t *disabledTun) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+func (t *disabledTun) SetMTU(mtu int) error {
+	return nil
+}
+
 func (t *disabledTun) SupportsMultiqueue() bool {
 	return true
 }

@@ -132,6 +132,10 @@ func (t *TestTun) Read(b []byte) (int, error) {
 	return len(p), nil
 }
 
+func (t *TestTun) SetMTU(mtu int) error {
+	return nil
+}
+
 func (t *TestTun) SupportsMultiqueue() bool {
 	return false
 }
