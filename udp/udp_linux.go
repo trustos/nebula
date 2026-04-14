@@ -313,30 +313,49 @@ func (u *StdConn) Close() error {
 	return syscall.Close(u.sysFd)
 }
 
+func unwrapStdConn(c Conn) *StdConn {
+	if cc, ok := c.(*CoalescingConn); ok {
+		if sc, ok := cc.Inner().(*StdConn); ok {
+			return sc
+		}
+	}
+	if sc, ok := c.(*StdConn); ok {
+		return sc
+	}
+	return nil
+}
+
 func NewUDPStatsEmitter(udpConns []Conn) func() {
 	// Check if our kernel supports SO_MEMINFO before registering the gauges
 	var udpGauges [][unix.SK_MEMINFO_VARS]metrics.Gauge
 	var meminfo [unix.SK_MEMINFO_VARS]uint32
-	if err := udpConns[0].(*StdConn).getMemInfo(&meminfo); err == nil {
-		udpGauges = make([][unix.SK_MEMINFO_VARS]metrics.Gauge, len(udpConns))
-		for i := range udpConns {
-			udpGauges[i] = [unix.SK_MEMINFO_VARS]metrics.Gauge{
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.rmem_alloc", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.rcvbuf", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.wmem_alloc", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.sndbuf", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.fwd_alloc", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.wmem_queued", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.optmem", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.backlog", i), nil),
-				metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.drops", i), nil),
+	firstConn := unwrapStdConn(udpConns[0])
+	if firstConn != nil {
+		if err := firstConn.getMemInfo(&meminfo); err == nil {
+			udpGauges = make([][unix.SK_MEMINFO_VARS]metrics.Gauge, len(udpConns))
+			for i := range udpConns {
+				udpGauges[i] = [unix.SK_MEMINFO_VARS]metrics.Gauge{
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.rmem_alloc", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.rcvbuf", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.wmem_alloc", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.sndbuf", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.fwd_alloc", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.wmem_queued", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.optmem", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.backlog", i), nil),
+					metrics.GetOrRegisterGauge(fmt.Sprintf("udp.%d.drops", i), nil),
+				}
 			}
 		}
 	}
 
 	return func() {
 		for i, gauges := range udpGauges {
-			if err := udpConns[i].(*StdConn).getMemInfo(&meminfo); err == nil {
+			sc := unwrapStdConn(udpConns[i])
+			if sc == nil {
+				continue
+			}
+			if err := sc.getMemInfo(&meminfo); err == nil {
 				for j := 0; j < unix.SK_MEMINFO_VARS; j++ {
 					gauges[j].Update(int64(meminfo[j]))
 				}
