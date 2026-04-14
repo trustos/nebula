@@ -156,8 +156,52 @@ func (u *StdConn) LocalAddr() (netip.AddrPort, error) {
 	}
 }
 
+func (u *StdConn) SetRecvBuffer(n int) error {
+	return syscall.SetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_RCVBUF, n)
+}
+
+func (u *StdConn) SetSendBuffer(n int) error {
+	return syscall.SetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, n)
+}
+
+func (u *StdConn) GetRecvBuffer() (int, error) {
+	return syscall.GetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_RCVBUF)
+}
+
+func (u *StdConn) GetSendBuffer() (int, error) {
+	return syscall.GetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_SNDBUF)
+}
+
 func (u *StdConn) ReloadConfig(c *config.C) {
-	// TODO
+	b := c.GetInt("listen.read_buffer", 0)
+	if b > 0 {
+		err := u.SetRecvBuffer(b)
+		if err == nil {
+			s, err := u.GetRecvBuffer()
+			if err == nil {
+				u.l.WithField("size", s).Info("listen.read_buffer was set")
+			} else {
+				u.l.WithError(err).Warn("Failed to get listen.read_buffer")
+			}
+		} else {
+			u.l.WithError(err).Error("Failed to set listen.read_buffer")
+		}
+	}
+
+	b = c.GetInt("listen.write_buffer", 0)
+	if b > 0 {
+		err := u.SetSendBuffer(b)
+		if err == nil {
+			s, err := u.GetSendBuffer()
+			if err == nil {
+				u.l.WithField("size", s).Info("listen.write_buffer was set")
+			} else {
+				u.l.WithError(err).Warn("Failed to get listen.write_buffer")
+			}
+		} else {
+			u.l.WithError(err).Error("Failed to set listen.write_buffer")
+		}
+	}
 }
 
 func NewUDPStatsEmitter(udpConns []Conn) func() {
@@ -185,7 +229,7 @@ func (u *StdConn) ListenOut(r EncReader) {
 }
 
 func (u *StdConn) SupportsMultipleReaders() bool {
-	return false
+	return true
 }
 
 func (u *StdConn) Rebind() error {
