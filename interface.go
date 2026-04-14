@@ -69,6 +69,7 @@ type Interface struct {
 	dropLocalBroadcast    bool
 	dropMulticast         bool
 	routines              int
+	tunRoutines           int
 	disconnectInvalid     atomic.Bool
 	closed                atomic.Bool
 	relayManager          *relayManager
@@ -223,11 +224,20 @@ func (f *Interface) activate() {
 		WithField("boringcrypto", boringEnabled()).
 		Info("Nebula interface is active")
 
-	if f.routines > 1 {
-		if !f.inside.SupportsMultiqueue() || !f.outside.SupportsMultipleReaders() {
-			f.routines = 1
-			f.l.Warn("routines is not supported on this platform, falling back to a single routine")
-		}
+	f.tunRoutines = f.routines
+	if f.tunRoutines > 1 && !f.inside.SupportsMultiqueue() {
+		f.tunRoutines = 1
+	}
+	if f.routines > 1 && !f.outside.SupportsMultipleReaders() {
+		f.routines = 1
+	}
+	if f.tunRoutines > f.routines {
+		f.tunRoutines = f.routines
+	}
+
+	if f.routines > f.tunRoutines {
+		f.l.WithField("udpRoutines", f.routines).WithField("tunRoutines", f.tunRoutines).
+			Info("Decoupled routine counts: UDP readers > TUN readers")
 	}
 
 	metrics.GetOrRegisterGauge("routines", nil).Update(int64(f.routines))
@@ -235,11 +245,13 @@ func (f *Interface) activate() {
 	// Prepare n tun queues
 	var reader io.ReadWriteCloser = f.inside
 	for i := 0; i < f.routines; i++ {
-		if i > 0 {
+		if i > 0 && i < f.tunRoutines {
 			reader, err = f.inside.NewMultiQueueReader()
 			if err != nil {
 				f.l.Fatal(err)
 			}
+		} else if i >= f.tunRoutines {
+			reader = f.readers[0]
 		}
 		f.readers[i] = reader
 	}
@@ -257,7 +269,7 @@ func (f *Interface) run() {
 	}
 
 	// Launch n queues to read packets from tun dev
-	for i := 0; i < f.routines; i++ {
+	for i := 0; i < f.tunRoutines; i++ {
 		go f.listenIn(f.readers[i], i)
 	}
 }
