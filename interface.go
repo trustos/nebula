@@ -257,12 +257,13 @@ func (f *Interface) activate() {
 		f.readers[i] = reader
 	}
 
-	for i := 0; i < len(f.writers); i++ {
-		if f.writers[i] != nil {
-			f.writers[i] = udp.NewCoalescingConn(f.writers[i])
-		}
-	}
-	f.l.Info("Packet coalescing enabled on UDP writers")
+	// Coalescing temporarily disabled — debugging packet loss.
+	// for i := 0; i < len(f.writers); i++ {
+	// 	if f.writers[i] != nil {
+	// 		f.writers[i] = udp.NewCoalescingConn(f.writers[i])
+	// 	}
+	// }
+	// f.l.Info("Packet coalescing enabled on UDP writers")
 
 	if err := f.inside.Activate(); err != nil {
 		f.inside.Close()
