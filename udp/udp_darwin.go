@@ -229,7 +229,7 @@ func (u *StdConn) ListenOut(r EncReader) {
 }
 
 func (u *StdConn) SupportsMultipleReaders() bool {
-	return false // disabled: SO_REUSEPORT on macOS drops packets under load
+	return true
 }
 
 func (u *StdConn) Rebind() error {
