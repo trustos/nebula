@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/netip"
 	"os"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"unsafe"
@@ -34,6 +35,9 @@ type tun struct {
 
 	// cache out buffer since we need to prepend 4 bytes for tun metadata
 	out []byte
+
+	in  []byte
+	wMu sync.Mutex
 }
 
 type ifReq struct {
@@ -504,16 +508,21 @@ func delRoute(prefix netip.Prefix, gateway netroute.Addr) error {
 }
 
 func (t *tun) Read(to []byte) (int, error) {
-	buf := make([]byte, len(to)+4)
-
+	buf := t.in
+	if cap(buf) < len(to)+4 {
+		buf = make([]byte, len(to)+4)
+		t.in = buf
+	}
+	buf = buf[:len(to)+4]
 	n, err := t.ReadWriteCloser.Read(buf)
-
 	copy(to, buf[4:])
 	return n - 4, err
 }
 
-// Write is only valid for single threaded use
+// Write is safe for concurrent use
 func (t *tun) Write(from []byte) (int, error) {
+	t.wMu.Lock()
+	defer t.wMu.Unlock()
 	buf := t.out
 	if cap(buf) < len(from)+4 {
 		buf = make([]byte, len(from)+4)
